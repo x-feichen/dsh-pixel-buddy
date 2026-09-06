@@ -6,6 +6,7 @@ describe('国际化词典（zh/en 对齐）', () => {
     const zh = STRINGS.zh;
     const en = STRINGS.en;
     expect(Object.keys(zh.settings).sort()).toEqual(Object.keys(en.settings).sort());
+    expect(Object.keys(zh.menu).sort()).toEqual(Object.keys(en.menu).sort());
     expect(Object.keys(zh.states).sort()).toEqual(Object.keys(en.states).sort());
     expect(Object.keys(zh.pets).sort()).toEqual(Object.keys(en.pets).sort());
   });

@@ -16,7 +16,7 @@ const result = await build({
   format: 'cjs',
   platform: 'browser',
   target: 'es2020',
-  external: ['react', 'react-dom', 'react/jsx-runtime', '@deepseek-ai/dsh-client-ui-primitives'],
+  external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', '@deepseek-ai/dsh-client-ui-primitives'],
   write: false,
   legalComments: 'none',
   minify: true,

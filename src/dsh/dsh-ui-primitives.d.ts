@@ -4,3 +4,6 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
   export const Menu: any;
   export const IconChevronDownOutline14: unknown;
 }
+declare module 'react-dom/client' {
+  export function createRoot(container: Element): { render(node: unknown): void; unmount(): void };
+}

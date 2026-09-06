@@ -14,6 +14,7 @@
  * 聚合：多会话按 报错 > 需要人工 > 运行中 > 待机 取最高优先级（T3.2 §3 的最小实现）。
  */
 import { createElement, useEffect, useReducer, useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import type { ReactElement } from 'react';
 import { Menu } from '@deepseek-ai/dsh-client-ui-primitives';
 /* DSH 宿主类型（ConversationSnapshot 等）由宿主运行时提供，接入层以窄化别名声明 */
@@ -23,6 +24,8 @@ import type { PixelBuddyHandle } from '../index.js';
 import type { PixelBuddyElement } from '../buddy/pixel-buddy.element.js';
 import { petName, t } from '../i18n.js';
 import type { Lang } from '../i18n.js';
+
+const PLUGIN_VERSION = '0.1.0';
 import { DevEventBus } from '../dev/event-bus.js';
 import type { SessionEvent } from '../contract.js';
 
@@ -194,7 +197,10 @@ function PixelBuddySeat(props: SeatProps): null {
     const el0 = document.querySelector('dsh-pixel-buddy');
     if (el0) (el0 as PixelBuddyElement).lang = lang;
     const el = document.querySelector('dsh-pixel-buddy') as PixelBuddyElement | null;
-    if (el) el.onDragEnd = (px: number) => void prefsScope?.set('bottomOffset', px);
+    if (el) {
+      el.onDragEnd = (px: number) => void prefsScope?.set('bottomOffset', px);
+      el.onContextMenu = (pos) => openBuddyMenu(pos);
+    }
     return () => {
       mountCount -= 1;
       if (mountCount === 0 && buddyHandle) {
@@ -427,5 +433,172 @@ function PixelBuddySettingsItem(scope: SettingsScope): ReactElement {
         },
       }),
     ),
+  );
+}
+
+
+// ===================== 右键菜单 =====================
+
+type MenuPage = 'main' | 'pets' | 'about';
+interface MenuPos {
+  x: number;
+  y: number;
+}
+
+const menuStyle: Record<string, string> = {
+  position: 'fixed',
+  left: `${0}px`,
+  top: `${0}px`,
+  zIndex: '2147483000',
+};
+
+/** 兼容方案（摸底结论：宿主无官方 API）：模拟点击宿主原生按钮。宿主 UI 改版可能失效。 */
+function clickHostButton(names: string[]): boolean {
+  const dialogOrBody = document.querySelector('[role="dialog"]') ?? document;
+  const buttons = [...(dialogOrBody as HTMLElement).querySelectorAll('button')];
+  for (const name of names) {
+    const hit = buttons.find((b) => b.textContent?.trim() === name);
+    if (hit) {
+      hit.click();
+      return true;
+    }
+  }
+  return false;
+}
+
+function BuddyMenuApp(props: {
+  pos: MenuPos;
+  close: () => void;
+}): ReactElement {
+  const scope = prefsScope as SettingsScope;
+  const { pos, close } = props;
+  const [page, setPage] = useState<MenuPage>('main');
+  const [, force] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => scope.subscribe(force), [scope]);
+  useEffect(() => onLangChange(force), []);
+
+  const snap = scope.getSnapshot();
+  const pet = snap.value?.pet ?? 'duck';
+  const visible = snap.value?.visible ?? true;
+  const blink = snap.value?.blink ?? false;
+
+  // 点击菜单外或 Escape 关闭
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest('[data-buddy-menu]')) close();
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') close();
+    };
+    window.addEventListener('pointerdown', onPointerDown, true);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown, true);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [close]);
+
+  const item = (id: string, label: string): { id: string; label: string } => ({ id, label });
+
+  let items: Array<{ id: string; label: string }>;
+  let selectedId: string | undefined;
+  if (page === 'pets') {
+    items = [
+      ...PET_IDS.map((id) => item(id, petName(lang, id))),
+      item('__back', t(lang, 'menu', 'back')),
+    ];
+    selectedId = pet;
+  } else if (page === 'about') {
+    items = [
+      item('version', PLUGIN_VERSION + ' · ' + t(lang, 'menu', 'aboutTagline')),
+      item('__back', t(lang, 'menu', 'back')),
+    ];
+  } else {
+    items = [
+      item('__pet', t(lang, 'menu', 'pet') + ' ▸'),
+      item('__hide', t(lang, 'menu', visible ? 'hide' : 'show')),
+      item('__reset', t(lang, 'menu', 'resetPosition')),
+      item('__blink', t(lang, 'menu', 'blink') + (blink ? ' ✓' : '')),
+      item('__settings', t(lang, 'menu', 'openSettings')),
+      item('__new', t(lang, 'menu', 'newSession')),
+      item('__about', t(lang, 'menu', 'about')),
+    ];
+  }
+
+  return createElement(Menu, {
+    open: true,
+    portal: false,
+    anchor: createElement('div', {
+      'data-buddy-menu': '',
+      style: { ...menuStyle, left: `${pos.x}px`, top: `${pos.y}px` },
+    }),
+    items,
+    selectedId: page === 'pets' ? selectedId : undefined,
+    onSelect: (id: string) => {
+      if (id === '__pet') {
+        setPage('pets');
+        return;
+      }
+      if (id === '__back') {
+        setPage('main');
+        return;
+      }
+      if (id === '__hide') {
+        void scope.set('visible', !visible);
+        close();
+        return;
+      }
+      if (id === '__reset') {
+        const el = document.querySelector('dsh-pixel-buddy') as PixelBuddyElement | null;
+        el?.resetPosition();
+        void scope.set('bottomOffset', 16);
+        close();
+        return;
+      }
+      if (id === '__blink') {
+        void scope.set('blink', !blink);
+        close();
+        return;
+      }
+      if (id === '__settings') {
+        close();
+        setTimeout(() => clickHostButton(['设置', 'Settings']), 50);
+        return;
+      }
+      if (id === '__new') {
+        close();
+        setTimeout(() => clickHostButton(['新建会话', 'New session', '新会话']), 50);
+        return;
+      }
+      if (id === '__about') {
+        setPage('about');
+        return;
+      }
+      // pets 页：选择宠物
+      if ((PET_IDS as readonly string[]).includes(id)) {
+        void scope.set('pet', id);
+        close();
+      }
+    },
+    onClose: close,
+  });
+}
+
+let menuRoot: ReturnType<typeof createRoot> | null = null;
+let menuContainer: HTMLElement | null = null;
+
+/** 打开右键菜单（单例 root，重复打开按最新状态重渲） */
+function openBuddyMenu(pos: MenuPos): void {
+  if (!menuContainer) {
+    menuContainer = document.createElement('div');
+    document.body.appendChild(menuContainer);
+    menuRoot = createRoot(menuContainer);
+  }
+  const close = (): void => {
+    menuRoot?.render(createElement('span', { style: { display: 'none' } }));
+  };
+  menuRoot?.render(
+    createElement(BuddyMenuApp, { pos, close }),
   );
 }

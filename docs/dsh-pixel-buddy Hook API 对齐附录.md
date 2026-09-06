@@ -136,3 +136,13 @@ interface SessionEventAdapter {
 **事件派生规则（实现于 `src/dsh/client.ts`）**：`error ← promptError`；`input-required ← pending`；`running ← running/partial/runningCalls`；`idle ← 其余`；粘滞徽章在宿主侧解除（用户在 DSH UI 完成确认/回答）时以 `user-ack` 清位，符合澄清结论 D2 精神。
 
 **实测记录**：安装→bundle 服务→宠物挂载（会话打开时）→发消息 running 蓝点→success 绿勾→2.5s 自动淡出 idle，全链路通过；服务端零报错。
+
+
+## 8. 回填记录：右键菜单宿主能力摸底（2026-09-06）
+
+| 菜单项 | 摸底结论 | 实现方式 |
+|---|---|---|
+| 打开设置页 | 宿主无面向插件的"打开设置"API（设置对话框由宿主 UI 内部状态管理） | **DOM 代理兼容方案**：查找并模拟点击宿主设置触发按钮（中英文案均适配），防御式实现；宿主 UI 改版可能失效——失效表现为菜单项点击无反应，不会报错 |
+| 新建会话 | 会话管理器的 createSession 为运行时内部私有方法，无插件面 | 同上：模拟点击宿主"新建会话"按钮 |
+
+> 后续版本若 DSH 暴露官方 face（会话创建/设置打开），应以官方 API 替换 DOM 代理。

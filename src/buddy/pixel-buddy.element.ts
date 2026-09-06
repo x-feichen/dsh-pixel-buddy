@@ -155,6 +155,8 @@ export class PixelBuddyElement extends HTMLElement {
     this.addEventListener('click', this.#onClick);
     // 垂直拖拽（按住左键上下拖，松手停住；移动超阈值抑制 click）
     this.addEventListener('mousedown', this.#onMouseDown);
+    // 右键菜单（接入层渲染菜单本体，元素只上报光标位置并阻止宿主默认菜单）
+    this.addEventListener('contextmenu', this.#onContextMenu);
     this.dataset.state = 'idle';
   }
 
@@ -177,6 +179,19 @@ export class PixelBuddyElement extends HTMLElement {
   #suppressClick = false;
   /** 拖拽结束回调：上抛最终距底偏移（由接入层持久化） */
   onDragEnd: ((bottomPx: number) => void) | null = null;
+  /** 右键回调：上抛光标位置（由接入层渲染菜单） */
+  onContextMenu: ((pos: { x: number; y: number }) => void) | null = null;
+
+  #onContextMenu = (e: MouseEvent): void => {
+    e.preventDefault();
+    e.stopPropagation();
+    this.onContextMenu?.({ x: e.clientX, y: e.clientY });
+  };
+
+  /** 回到默认位置（垂直偏移复位，不持久化——持久化由调用方决定） */
+  resetPosition(): void {
+    this.bottomOffset = EDGE_OFFSET;
+  }
 
   #onMouseDown = (e: MouseEvent): void => {
     if (e.button !== 0) return;
@@ -446,6 +461,7 @@ export class PixelBuddyElement extends HTMLElement {
     this.#onSchemeChange = null;
     this.removeEventListener('click', this.#onClick);
     this.removeEventListener('mousedown', this.#onMouseDown);
+    this.removeEventListener('contextmenu', this.#onContextMenu);
     window.removeEventListener('mousemove', this.#onDragMove);
     window.removeEventListener('mouseup', this.#onDragUp);
     this.remove();

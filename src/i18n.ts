@@ -25,6 +25,19 @@ export const STRINGS = {
       panda: '熊猫',
       frog: '青蛙',
     },
+    menu: {
+      pet: '宠物形象',
+      hide: '隐藏宠物',
+      show: '显示宠物',
+      resetPosition: '回到默认位置',
+      blink: '待机眨眼动画',
+      about: '关于',
+      aboutVersion: 'dsh-pixel-buddy v0.1.0',
+      aboutTagline: 'DSH 桌面宠物插件',
+      back: '返回',
+      openSettings: '打开设置',
+      newSession: '新建会话',
+    },
     states: {
       idle: '会话空闲',
       running: '会话运行中',
@@ -52,6 +65,19 @@ export const STRINGS = {
       panda: 'Panda',
       frog: 'Frog',
     },
+    menu: {
+      pet: 'Pet',
+      hide: 'Hide pet',
+      show: 'Show pet',
+      resetPosition: 'Reset position',
+      blink: 'Idle blink animation',
+      about: 'About',
+      aboutVersion: 'dsh-pixel-buddy v0.1.0',
+      aboutTagline: 'DSH desktop pet plugin',
+      back: 'Back',
+      openSettings: 'Open settings',
+      newSession: 'New session',
+    },
     states: {
       idle: 'Session idle',
       running: 'Session running',
@@ -64,7 +90,7 @@ export const STRINGS = {
 
 export type StringKey = keyof (typeof STRINGS)['zh'];
 
-export function t(lang: Lang, section: 'settings' | 'states', key: string): string {
+export function t(lang: Lang, section: 'settings' | 'states' | 'menu', key: string): string {
   return (STRINGS[lang] ?? STRINGS.zh)[section][key as never] ?? key;
 }
 

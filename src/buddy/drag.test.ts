@@ -86,3 +86,31 @@ describe('垂直拖拽与侧别设置（T2.x 增量）', () => {
     expect(el.bottomOffset).toBe(8);
   });
 });
+
+describe('右键菜单回调', () => {
+  function buddy(): PixelBuddyElement {
+    return document.querySelector('dsh-pixel-buddy') as PixelBuddyElement;
+  }
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    registerPixelBuddy();
+    document.body.appendChild(document.createElement('dsh-pixel-buddy'));
+  });
+
+  it('contextmenu：上抛光标位置并阻止宿主默认菜单', () => {
+    const el = buddy();
+    const received: Array<{ x: number; y: number }> = [];
+    el.onContextMenu = (pos) => received.push(pos);
+    const ev = new MouseEvent('contextmenu', {
+      clientX: 100, clientY: 200, bubbles: true, cancelable: true,
+    });
+    el.dispatchEvent(ev);
+    expect(received).toEqual([{ x: 100, y: 200 }]);
+    expect(ev.defaultPrevented).toBe(true);
+  });
+
+  it('未注册回调时不报错', () => {
+    expect(() => buddy().dispatchEvent(new MouseEvent('contextmenu', { cancelable: true }))).not.toThrow();
+  });
+});
