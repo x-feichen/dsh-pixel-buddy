@@ -20,33 +20,21 @@ npm run lint    # 代码检查
 
 - 已安装 DSH CLI（`npm i -g @deepseek-ai/dsh`），存在 web profile（`~/.dsh/profiles/web`）。
 
-### 步骤
+### 步骤（一条命令）
 
-1. **构建 DSH 客户端包**（产物 `dsh/client.js`，`__ModuleLoader__` 工厂格式）：
+```bash
+npm run dsh:install
+```
 
-   ```bash
-   npm install
-   npm run build:dsh
-   ```
+脚本自动完成：构建 DSH 客户端包 → 拷贝包体到 profile 的 `local/` 目录 → 注册依赖与 bundle → pnpm 安装 → 组成树校验。默认安装到 `web` profile，其他 profile 用 `npm run dsh:install -- --profile <name>`。
 
-2. **安装插件包到 profile**。官方通道是 `dsh plugin --profile web add <包>`（内部转发 pnpm）。本机开发推荐直接把本仓库拷入 profile 的 `local/` 目录后以相对路径安装，避免盘符绝对路径在 pnpm 下产生坏链：
+移除插件：
 
-   ```bash
-   PROFILE=~/.dsh/profiles/web
-   mkdir -p $PROFILE/local
-   cp -r <本仓库> $PROFILE/local/dsh-pixel-buddy        # 排除 node_modules/dist
-   cd $PROFILE && pnpm add "file:./local/dsh-pixel-buddy"
-   ```
+```bash
+npm run dsh:uninstall
+```
 
-3. **挂载到 profile bundle 栈**。正常情况下 CLI 会依据包内 `dsh.bundle.patch` 自动 reconcile；如未生效，手动把 `dsh-pixel-buddy` 追加进 `$PROFILE/package.json` 的 `dsh.profile.bundles` 数组。
-
-4. **重启 profile 并验证**：
-
-   ```bash
-   dsh web --no-open --port 8765
-   ```
-
-   验证要点：`curl http://127.0.0.1:8765/plugins/dsh-pixel-buddy/client.js` 返回 200；打开任一会话，右下角出现像素宠物；设置 → 通用设置底部出现"宠物形象/显示宠物"偏好行。
+安装/更新后重启 profile 生效（`dsh web --no-open --port <port>`）。
 
 ### 使用
 

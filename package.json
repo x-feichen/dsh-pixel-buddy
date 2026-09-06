@@ -11,7 +11,9 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "build:dsh": "node scripts/build-dsh.mjs"
+    "build:dsh": "node scripts/build-dsh.mjs",
+    "dsh:install": "node scripts/install-dsh.mjs",
+    "dsh:uninstall": "node scripts/install-dsh.mjs --uninstall"
   },
   "devDependencies": {
     "@types/react": "^18.3.31",
