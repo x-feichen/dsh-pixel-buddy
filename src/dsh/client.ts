@@ -245,7 +245,7 @@ const PET_OPTIONS: ReadonlyArray<readonly [string, string]> = [
   ['dog', '狗'],
   ['rabbit', '兔子'],
   ['fox', '狐狸'],
-  ['penguin', '企鹅'],
+  ['hamster', '仓鼠'],
   ['panda', '熊猫'],
   ['frog', '青蛙'],
 ];

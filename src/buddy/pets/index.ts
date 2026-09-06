@@ -4,7 +4,7 @@ import { cat } from './cat.js';
 import { dog } from './dog.js';
 import { rabbit } from './rabbit.js';
 import { fox } from './fox.js';
-import { penguin } from './penguin.js';
+import { hamster } from './hamster.js';
 import { panda } from './panda.js';
 import { frog } from './frog.js';
 
@@ -15,7 +15,7 @@ export const PET_SPRITES: Readonly<Record<string, PetSprite>> = {
   dog,
   rabbit,
   fox,
-  penguin,
+  hamster,
   panda,
   frog,
 };
