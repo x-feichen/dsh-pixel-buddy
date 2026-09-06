@@ -1,0 +1,13 @@
+{
+  "id": "dsh-external/dsh-pixel-buddy",
+  "version": "0.1.0",
+  "main": "./lib/index.cjs",
+  "description": "dsh-pixel-buddy：DSH Web 桌面宠物插件，右下角像素小伙伴随会话状态展示徽章（运行中/需要人工/报错/成功）。纯前端实现，零常态性能开销。",
+  "engines": {
+    "dsh": ">=0.1.0"
+  },
+  "client": {
+    "main": "./dsh/client.js",
+    "inject": ["slots"]
+  }
+}

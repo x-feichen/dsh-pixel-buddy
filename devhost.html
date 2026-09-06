@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>dsh-pixel-buddy 本地联调宿主（devhost）</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 24px;
+        color: #333;
+      }
+      .panel {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        padding: 12px 16px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+      }
+      .panel button {
+        margin: 4px 4px 4px 0;
+        padding: 4px 10px;
+        cursor: pointer;
+      }
+      #log {
+        height: 8em;
+        overflow: auto;
+        font: 12px/1.6 monospace;
+        background: #f6f6f6;
+        padding: 6px;
+        margin-top: 8px;
+      }
+      /* 宿主内容占位：验证右下角不遮挡主内容 */
+      main {
+        max-width: 720px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>DSH Web 模拟宿主</h1>
+      <p>右下角应出现占位像素宠物。事件面板供后续任务（T1.3/T1.7）手动派发内部事件。</p>
+      <div style="height: 160vh"></div>
+    </main>
+
+    <div class="panel">
+      <strong>事件触发面板</strong>（T1.5 起：按钮直接驱动宠物徽章；报错/需要人工后单击宠物消除）
+      <div>
+        <strong>宠物切换：</strong>
+        <button data-pet="duck">鸭子</button>
+        <button data-pet="cat">猫</button>
+        <button data-pet="dog">狗</button>
+        <button data-pet="rabbit">兔</button>
+        <button data-pet="fox">狐狸</button>
+        <button data-pet="penguin">企鹅</button>
+        <button data-pet="panda">熊猫</button>
+        <button data-pet="frog">青蛙</button>
+      </div>
+      <div>
+        <button data-ev="task-start">运行中</button>
+        <button data-ev="task-success">成功</button>
+        <button data-ev="task-error">报错</button>
+        <button data-ev="input-required">需要人工</button>
+      </div>
+      <div id="log"></div>
+    </div>
+
+    <script type="module">
+      import { mountPixelBuddy } from '/src/index.ts';
+      import { DevEventBus } from '/src/dev/event-bus.ts';
+
+      const log = (msg) => {
+        const el = document.getElementById('log');
+        el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.textContent;
+      };
+
+      // 以 DevEventBus 作为适配层注入：面板按钮即模拟 DSH Hook 事件
+      window.dshPixelBuddy = mountPixelBuddy(document.body, { adapter: DevEventBus });
+      log('插件已挂载：<dsh-pixel-buddy>（状态联动已接通）');
+
+      DevEventBus.subscribe((e) => log(`事件派发：${e.type}`));
+      document.querySelectorAll('.panel button').forEach((btn) => {
+        if (btn.dataset.pet) {
+          btn.addEventListener('click', () => {
+            document.querySelector('dsh-pixel-buddy')?.setAttribute('pet', btn.dataset.pet);
+            log('切换宠物：' + btn.dataset.pet);
+          });
+          return;
+        }
+        btn.addEventListener('click', () => {
+          const ev = btn.dataset.ev;
+          // 终态类按钮模拟完整会话：真实事件序列中"成功/报错/需要人工"必然
+          // 发生在某次 task-start 之后；无活跃任务时自动补齐起始事件
+          if (ev !== 'task-start') DevEventBus.dispatch({ type: 'task-start' });
+          DevEventBus.dispatch({ type: ev });
+        });
+      });
+    </script>
+  </body>
+</html>

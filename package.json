@@ -1,0 +1,46 @@
+{
+  "name": "dsh-pixel-buddy",
+  "version": "0.1.0",
+  "description": "DSH Web 桌面宠物插件：像素小伙伴随会话状态展示徽章信号",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "build:dsh": "node scripts/build-dsh.mjs"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "happy-dom": "^18.0.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.0",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "main": "./dsh/client.js",
+      "inject": [
+        "slots",
+        "settingsScope"
+      ],
+      "platform": "web"
+    }
+  },
+  "main": "lib/index.cjs",
+  "exports": {
+    ".": "./lib/index.cjs",
+    "./client": "./dsh/client.js",
+    "./package.json": "./package.json"
+  }
+}

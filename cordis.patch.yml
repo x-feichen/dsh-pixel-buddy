@@ -1,0 +1,6 @@
+# dsh-pixel-buddy bundle patch：`dsh plugin --profile web add` 时由 CLI
+# reconcile 进 profile 的 dsh.profile.bundles / cordis.patch.yml 挂载层。
+- insert:
+    - id: pixel-buddy
+      name: dsh-pixel-buddy
+      config: {}
