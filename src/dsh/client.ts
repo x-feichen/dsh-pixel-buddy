@@ -21,6 +21,8 @@ import { Menu } from '@deepseek-ai/dsh-client-ui-primitives';
 import { mountPixelBuddy } from '../index.js';
 import type { PixelBuddyHandle } from '../index.js';
 import type { PixelBuddyElement } from '../buddy/pixel-buddy.element.js';
+import { petName, t } from '../i18n.js';
+import type { Lang } from '../i18n.js';
 import { DevEventBus } from '../dev/event-bus.js';
 import type { SessionEvent } from '../contract.js';
 
@@ -45,13 +47,13 @@ interface Prefs {
   bottomOffset?: number;
   blink?: boolean;
 }
-interface SettingsScope {
-  getSnapshot(): { status: string; value: Prefs | undefined };
+interface SettingsScope<T = Prefs> {
+  getSnapshot(): { status: string; value: T | undefined };
   subscribe(listener: () => void): () => void;
   set(field: string, value: unknown): Promise<void>;
 }
 interface SettingsScopeFactory {
-  bind(spec: { namespace: string }): SettingsScope;
+  bind<T = Prefs>(spec: { namespace: string }): SettingsScope<T>;
 }
 interface SeatProps {
   useSession(selector: (snapshot: HostSnapshot) => DerivedStatus): DerivedStatus;
@@ -156,6 +158,14 @@ let mountCount = 0;
 /** 用户偏好（设置命名空间 dsh-pixel-buddy 的客户端镜像；未就绪时用默认值） */
 const prefs: Required<Prefs> = { pet: 'duck', visible: true, side: 'right', bottomOffset: 16, blink: false };
 let prefsScope: SettingsScope | null = null;
+/** 宿主语言（locale 命名空间 preference 字段），缺省中文 */
+let lang: Lang = 'zh';
+let localeScope: SettingsScope<{ preference?: string }> | null = null;
+const localeListeners = new Set<() => void>();
+function onLangChange(listener: () => void): () => void {
+  localeListeners.add(listener);
+  return () => localeListeners.delete(listener);
+}
 
 function applyPrefsToElement(): void {
   const el = document.querySelector('dsh-pixel-buddy');
@@ -181,6 +191,8 @@ function PixelBuddySeat(props: SeatProps): null {
       buddyHandle = mountPixelBuddy(document.body, { adapter: DevEventBus });
     }
     applyPrefsToElement();
+    const el0 = document.querySelector('dsh-pixel-buddy');
+    if (el0) (el0 as PixelBuddyElement).lang = lang;
     const el = document.querySelector('dsh-pixel-buddy') as PixelBuddyElement | null;
     if (el) el.onDragEnd = (px: number) => void prefsScope?.set('bottomOffset', px);
     return () => {
@@ -202,6 +214,22 @@ export function apply(ctx: SlotContext & { settingsScope: SettingsScopeFactory }
   // 用户偏好：订阅命名空间，变更实时应用到本体
   const scope = ctx.settingsScope.bind({ namespace: 'dsh-pixel-buddy' });
   prefsScope = scope;
+  localeScope = ctx.settingsScope.bind<{ preference?: string }>({ namespace: 'locale' });
+  const consumeLocale = (): void => {
+    if (!localeScope) return;
+    const pref = localeScope.getSnapshot().value?.preference;
+    const next: Lang = pref === 'en' ? 'en' : 'zh';
+    if (next !== lang) {
+      lang = next;
+      const el = document.querySelector('dsh-pixel-buddy');
+      if (el) (el as PixelBuddyElement).lang = lang;
+      for (const listener of localeListeners) listener();
+    }
+  };
+  localeScope.subscribe(consumeLocale);
+  // 临时诊断
+  (window as unknown as Record<string, unknown>).__dshBuddyLocale = localeScope;
+  consumeLocale();
   const consume = (): void => {
     const snap = scope.getSnapshot();
     if (snap.value?.pet) prefs.pet = snap.value.pet;
@@ -239,16 +267,7 @@ export function apply(ctx: SlotContext & { settingsScope: SettingsScopeFactory }
 }
 
 /** 宠物选项（与 pets/index.ts 注册表对齐；文案为展示名） */
-const PET_OPTIONS: ReadonlyArray<readonly [string, string]> = [
-  ['duck', '鸭子'],
-  ['cat', '猫'],
-  ['dog', '狗'],
-  ['rabbit', '兔子'],
-  ['fox', '狐狸'],
-  ['hamster', '仓鼠'],
-  ['panda', '熊猫'],
-  ['frog', '青蛙'],
-];
+const PET_IDS = ['duck', 'cat', 'dog', 'rabbit', 'fox', 'hamster', 'panda', 'frog'] as const;
 
 const rowStyle: Record<string, string> = {
   display: 'flex',
@@ -273,12 +292,9 @@ const anchorStyle: Record<string, string> = {
   cursor: 'pointer',
 };
 const chevronStyle: Record<string, string> = { opacity: '0.6', fontSize: '10px' };
-const SIDE_OPTIONS: ReadonlyArray<readonly [string, string]> = [
-  ['right', '右侧'],
-  ['left', '左侧'],
-];
-function prefsSideLabel(side: string): string {
-  return SIDE_OPTIONS.find(([id]) => id === side)?.[1] ?? '右侧';
+/** 语言切换时重挂设置行（locale 非响应式字段，靠组件自身订阅） */
+export function notifyLangChange(): void {
+  for (const listener of localeListeners) listener();
 }
 
 /** 滑动开关（对齐 DSH 控件观感：圆角胶囊 + 滑块，150ms 过渡） */
@@ -324,11 +340,11 @@ function PixelBuddySettingsItem(scope: SettingsScope): ReactElement {
   const [petMenuOpen, setPetMenuOpen] = useState(false);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   useEffect(() => scope.subscribe(force), [scope]);
+  useEffect(() => onLangChange(force), []);
 
   const snap = scope.getSnapshot();
   const pet = snap.value?.pet ?? 'duck';
   const visible = snap.value?.visible ?? true;
-  const current = PET_OPTIONS.find(([id]) => id === pet) ?? PET_OPTIONS[0]!;
 
   return createElement(
     'div',
@@ -336,7 +352,7 @@ function PixelBuddySettingsItem(scope: SettingsScope): ReactElement {
     createElement(
       'div',
       { style: rowStyle },
-      createElement('span', { style: labelStyle }, '宠物形象'),
+      createElement('span', { style: labelStyle }, t(lang, 'settings', 'pet')),
       createElement(Menu, {
         open: petMenuOpen,
         portal: true,
@@ -349,14 +365,13 @@ function PixelBuddySettingsItem(scope: SettingsScope): ReactElement {
             'aria-expanded': petMenuOpen,
             onClick: () => setPetMenuOpen((now) => !now),
           },
-          createElement('span', null, current[1]),
+          createElement('span', null, petName(lang, pet)),
           createElement('span', { style: chevronStyle }, '▼'),
         ),
-        items: PET_OPTIONS.map(([id, label]) => ({ id, label })),
+        items: PET_IDS.map((id) => ({ id, label: petName(lang, id) })),
         selectedId: pet,
         onSelect: (id: string) => {
-          const picked = PET_OPTIONS.find(([pid]) => pid === id);
-          if (picked) void scope.set('pet', picked[0]);
+          if ((PET_IDS as readonly string[]).includes(id)) void scope.set('pet', id);
           setPetMenuOpen(false);
         },
         onClose: () => setPetMenuOpen(false),
@@ -365,7 +380,7 @@ function PixelBuddySettingsItem(scope: SettingsScope): ReactElement {
     createElement(
       'div',
       { style: rowStyle },
-      createElement('span', { style: labelStyle }, '显示位置'),
+      createElement('span', { style: labelStyle }, t(lang, 'settings', 'side')),
       createElement(Menu, {
         open: sideMenuOpen,
         portal: true,
@@ -378,10 +393,10 @@ function PixelBuddySettingsItem(scope: SettingsScope): ReactElement {
             'aria-expanded': sideMenuOpen,
             onClick: () => setSideMenuOpen((now) => !now),
           },
-          createElement('span', null, prefsSideLabel(prefs.side)),
+          createElement('span', null, t(lang, 'settings', prefs.side === 'left' ? 'sideLeft' : 'sideRight')),
           createElement('span', { style: chevronStyle }, '▼'),
         ),
-        items: SIDE_OPTIONS.map(([id, label]) => ({ id, label })),
+        items: (['right', 'left'] as const).map((id) => ({ id, label: t(lang, 'settings', id === 'left' ? 'sideLeft' : 'sideRight') })),
         selectedId: prefs.side,
         onSelect: (id: string) => {
           if (id === 'left' || id === 'right') void scope.set('side', id);
@@ -393,7 +408,7 @@ function PixelBuddySettingsItem(scope: SettingsScope): ReactElement {
     createElement(
       'div',
       { style: rowStyle },
-      createElement('span', { style: labelStyle }, '显示宠物'),
+      createElement('span', { style: labelStyle }, t(lang, 'settings', 'showPet')),
       createElement(ToggleSwitch, {
         checked: visible,
         onChange: (next: boolean) => {
@@ -404,7 +419,7 @@ function PixelBuddySettingsItem(scope: SettingsScope): ReactElement {
     createElement(
       'div',
       { style: rowStyle },
-      createElement('span', { style: labelStyle }, '待机眨眼动画'),
+      createElement('span', { style: labelStyle }, t(lang, 'settings', 'blink')),
       createElement(ToggleSwitch, {
         checked: prefs.blink,
         onChange: (next: boolean) => {

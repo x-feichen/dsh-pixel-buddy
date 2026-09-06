@@ -35,13 +35,24 @@ export const BADGE_SYMBOLS: Readonly<Record<BadgeStateName, string>> = {
   success: '<path d="M7 12.5 L10.5 16 L17 8.5" stroke-width="2.5" fill="none"/>',
 };
 
-/** 屏幕阅读器可感知的状态语义（色觉可及性的文本冗余编码，T2.2） */
-export const BADGE_LABELS: Readonly<Record<BuddyState, string>> = {
-  idle: '会话空闲',
-  running: '会话运行中',
-  'input-required': '会话需要人工介入',
-  error: '会话出现异常',
-  success: '任务成功完成',
+/** 屏幕阅读器可感知的状态语义（色觉可及性的文本冗余编码，T2.2；i18n 双语） */
+export const BADGE_LABELS: Readonly<
+  Record<'zh' | 'en', Readonly<Record<BuddyState, string>>>
+> = {
+  zh: {
+    idle: '会话空闲',
+    running: '会话运行中',
+    'input-required': '会话需要人工介入',
+    error: '会话出现异常',
+    success: '任务成功完成',
+  },
+  en: {
+    idle: 'Session idle',
+    running: 'Session running',
+    'input-required': 'Input required',
+    error: 'Session error',
+    success: 'Task completed',
+  },
 };
 
 export function badgeSvg(state: BadgeStateName): string {

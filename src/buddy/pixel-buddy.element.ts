@@ -116,7 +116,7 @@ const style = /* css */ `
 
 export class PixelBuddyElement extends HTMLElement {
   static readonly tagName = 'dsh-pixel-buddy';
-  static readonly observedAttributes = ['size', 'theme', 'pet', 'side', 'blink'];
+  static readonly observedAttributes = ['size', 'theme', 'pet', 'side', 'blink', 'lang'];
 
   #shadow: ShadowRoot | null = null;
   #wrap: HTMLElement | null = null;
@@ -161,6 +161,7 @@ export class PixelBuddyElement extends HTMLElement {
   #badgeNodes: [HTMLElement, HTMLElement] | null = null;
   #activeBadge = 0;
   #shownState: BuddyState = 'idle';
+  #lang: 'zh' | 'en' = 'zh';
   /** 距底边偏移（px），拖拽/设置共同读写 */
   #bottomOffset = EDGE_OFFSET;
   /** 粘滞态消除回调（由状态控制器注入） */
@@ -231,6 +232,14 @@ export class PixelBuddyElement extends HTMLElement {
     else this.removeAttribute('data-side');
   }
 
+  /** 播报语言（跟随宿主 locale；缺省中文） */
+  get lang(): 'zh' | 'en' {
+    return this.#lang;
+  }
+  set lang(value: 'zh' | 'en') {
+    this.setAttribute('lang', value);
+  }
+
   /** 待机眨眼动画开关（默认关，纯 CSS 实现） */
   get blink(): boolean {
     return this.getAttribute('blink') === 'on';
@@ -262,7 +271,7 @@ export class PixelBuddyElement extends HTMLElement {
       incoming.querySelector('svg')?.remove();
       incoming.insertAdjacentHTML('afterbegin', badgeSvg(state));
       incoming.className = `badge badge--${state}`;
-      incoming.setAttribute('aria-label', BADGE_LABELS[state]);
+      incoming.setAttribute('aria-label', BADGE_LABELS[this.#lang][state]);
       incoming.classList.add('visible'); // 新徽章淡入
       current.classList.remove('visible'); // 旧徽章同步淡出（PRD §4.4 交叉淡入淡出）
       this.#activeBadge = 1 - this.#activeBadge;
@@ -270,7 +279,7 @@ export class PixelBuddyElement extends HTMLElement {
     this.#shownState = state;
     // 可观测性：宿主元素上的当前状态（调试/测试读取，closed shadow 的对外窗口）
     this.dataset.state = state;
-    if (this.#liveRegion) this.#liveRegion.textContent = BADGE_LABELS[state];
+    if (this.#liveRegion) this.#liveRegion.textContent = BADGE_LABELS[this.#lang][state];
   }
 
   attributeChangedCallback(attr: string, _old: string | null, value: string | null): void {
@@ -279,6 +288,7 @@ export class PixelBuddyElement extends HTMLElement {
     if (attr === 'pet') this.#applyPet(this.#parsePet(value));
     if (attr === 'side') this.#applySide(this.#parseSide(value));
     if (attr === 'blink') this.#applyBlink(value === 'on');
+    if (attr === 'lang') this.#lang = value === 'en' ? 'en' : 'zh';
   }
 
   /** 本体尺寸档位：32/40/48px，非法值回退默认档 */

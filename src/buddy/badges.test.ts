@@ -52,7 +52,9 @@ describe('T2.1/T2.2 主题化徽章与可访问性', () => {
 
   it('四态符号互不相同（非仅靠颜色区分）且语义标签齐备', () => {
     expect(new Set(Object.values(BADGE_SYMBOLS)).size).toBe(4);
-    expect(Object.keys(BADGE_LABELS)).toHaveLength(5); // 含 idle
+    // 双语：每种语言含全部 5 个状态键（含 idle）
+    expect(Object.keys(BADGE_LABELS.zh)).toHaveLength(5);
+    expect(Object.keys(BADGE_LABELS.en)).toHaveLength(5);
   });
 
   it('theme 属性：light/dark 显式生效，非法值回退 auto', () => {

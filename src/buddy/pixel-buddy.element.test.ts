@@ -88,3 +88,38 @@ describe('待机眨眼动画（默认关）', () => {
     expect(b.hasAttribute('data-blink')).toBe(false);
   });
 });
+
+describe('徽章播报语言（i18n）', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    registerPixelBuddy();
+    document.body.appendChild(document.createElement('dsh-pixel-buddy'));
+  });
+
+  function buddy(): PixelBuddyElement {
+    return document.querySelector('dsh-pixel-buddy') as PixelBuddyElement;
+  }
+
+  it('lang 属性切换后 live region 播报跟随（zh/en）', () => {
+    const b = buddy();
+    b.lang = 'zh';
+    b.setState('running');
+    const live = (b as unknown as { __testLiveRegion(): HTMLElement | null }).__testLiveRegion();
+    expect(live?.textContent).toBe('会话运行中');
+    b.lang = 'en';
+    b.setState('success');
+    expect(live?.textContent).toBe('Task completed');
+    // aria-label 同步
+    const badges = (b as unknown as { __testBadges(): HTMLElement[] }).__testBadges();
+    const visible = badges.find((n) => n.classList.contains('visible'));
+    expect(visible?.getAttribute('aria-label')).toBe('Task completed');
+  });
+
+  it('lang 属性非法值回退中文', () => {
+    const b = buddy();
+    b.setAttribute('lang', 'fr');
+    b.setState('error');
+    const live = (b as unknown as { __testLiveRegion(): HTMLElement | null }).__testLiveRegion();
+    expect(live?.textContent).toBe('会话出现异常');
+  });
+});
