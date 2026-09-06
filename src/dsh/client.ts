@@ -43,6 +43,7 @@ interface Prefs {
   visible?: boolean;
   side?: 'left' | 'right';
   bottomOffset?: number;
+  blink?: boolean;
 }
 interface SettingsScope {
   getSnapshot(): { status: string; value: Prefs | undefined };
@@ -153,7 +154,7 @@ let buddyHandle: PixelBuddyHandle | null = null;
 let mountCount = 0;
 
 /** 用户偏好（设置命名空间 dsh-pixel-buddy 的客户端镜像；未就绪时用默认值） */
-const prefs: Required<Prefs> = { pet: 'duck', visible: true, side: 'right', bottomOffset: 16 };
+const prefs: Required<Prefs> = { pet: 'duck', visible: true, side: 'right', bottomOffset: 16, blink: false };
 let prefsScope: SettingsScope | null = null;
 
 function applyPrefsToElement(): void {
@@ -163,6 +164,7 @@ function applyPrefsToElement(): void {
   (el as HTMLElement).style.display = prefs.visible ? '' : 'none';
   el.setAttribute('side', prefs.side);
   (el as PixelBuddyElement).bottomOffset = prefs.bottomOffset;
+  (el as PixelBuddyElement).blink = prefs.blink;
 }
 
 function PixelBuddySeat(props: SeatProps): null {
@@ -206,6 +208,7 @@ export function apply(ctx: SlotContext & { settingsScope: SettingsScopeFactory }
     if (typeof snap.value?.visible === 'boolean') prefs.visible = snap.value.visible;
     if (snap.value?.side === 'left' || snap.value?.side === 'right') prefs.side = snap.value.side;
     if (typeof snap.value?.bottomOffset === 'number') prefs.bottomOffset = snap.value.bottomOffset;
+    if (typeof snap.value?.blink === 'boolean') prefs.blink = snap.value.blink;
     applyPrefsToElement();
   };
   scope.subscribe(consume);
@@ -395,6 +398,17 @@ function PixelBuddySettingsItem(scope: SettingsScope): ReactElement {
         checked: visible,
         onChange: (next: boolean) => {
           void scope.set('visible', next);
+        },
+      }),
+    ),
+    createElement(
+      'div',
+      { style: rowStyle },
+      createElement('span', { style: labelStyle }, '待机眨眼动画'),
+      createElement(ToggleSwitch, {
+        checked: prefs.blink,
+        onChange: (next: boolean) => {
+          void scope.set('blink', next);
         },
       }),
     ),

@@ -12,6 +12,8 @@ describe('宠物注册表与切换（多形象支持）', () => {
       expect(svg).toContain('viewBox="0 0 16 16"');
       expect(svg).toContain('crispEdges');
       expect(svg).not.toMatch(/animation|transition/i); // 本体红线
+      expect(pet.blinkOverlay).toBeDefined(); // 全部宠物支持眨眼
+      expect(pet.blinkOverlay?.()).toMatch(/<rect/);
     }
     expect(PET_SPRITES[DEFAULT_PET_ID]).toBeDefined();
   });

@@ -37,4 +37,8 @@ export const penguin: PetSprite = {
     <rect x="8" y="13" width="2" height="1" fill="#F08C1B"/>
   </svg>`;
   },
+
+  blinkOverlay() {
+    return `<rect x="4" y="4" width="1" height="2" fill="#39465A"/><rect x="8" y="4" width="1" height="2" fill="#39465A"/><rect x="4" y="5" width="1" height="1" fill="#F5F7FA"/><rect x="8" y="5" width="1" height="1" fill="#F5F7FA"/>`;
+  },
 };

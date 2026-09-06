@@ -48,6 +48,26 @@ const style = /* css */ `
     /* 本体永不携带 animation/transition（PRD §4.4 性能红线） */
     image-rendering: pixelated;
   }
+  .pet-wrap { position: relative; width: 100%; height: 100%; }
+  .lids {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+  }
+  :host([data-blink='on']) .lids {
+    /* 待机眨眼（设置项，默认关）：纯 CSS 动画，无 JS 循环（性能红线） */
+    animation: buddy-blink 4.6s linear infinite;
+  }
+  @keyframes buddy-blink {
+    0%, 91%, 100% { opacity: 0; }
+    93%, 95% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :host([data-blink='on']) .lids { animation: none; } /* 与 T2.2 一致 */
+  }
   .badge {
     position: absolute;
     /* 头顶正上方居中（产品裁决 2026-09-05，修订美术需求单 §4.1 右上角方案）；
@@ -96,7 +116,7 @@ const style = /* css */ `
 
 export class PixelBuddyElement extends HTMLElement {
   static readonly tagName = 'dsh-pixel-buddy';
-  static readonly observedAttributes = ['size', 'theme', 'pet', 'side'];
+  static readonly observedAttributes = ['size', 'theme', 'pet', 'side', 'blink'];
 
   #shadow: ShadowRoot | null = null;
   #wrap: HTMLElement | null = null;
@@ -113,8 +133,9 @@ export class PixelBuddyElement extends HTMLElement {
     const styleEl = document.createElement('style');
     styleEl.textContent = style;
     const wrap = document.createElement('div');
+    wrap.className = 'pet-wrap';
     this.#wrap = wrap;
-    wrap.innerHTML = this.#readPet().svg();
+    wrap.innerHTML = this.#petMarkup(this.#readPet());
     // 双徽章节点：crossfade 时旧徽章淡出、新徽章同步淡入（PRD §4.4）
     this.#badgeNodes = [makeBadgeNode(), makeBadgeNode()];
     // ARIA live region：状态变化以文本播报，不依赖颜色/视觉（T2.2）
@@ -127,6 +148,7 @@ export class PixelBuddyElement extends HTMLElement {
     this.#applySize(this.#readSize());
     this.#applyTheme(this.#readTheme());
     this.#applyBottom(this.#bottomOffset);
+    this.#applyBlinkPhase(this.#readPet());
     this.#checkCoexistence();
 
     // 消除交互（澄清结论 D1）：单击宠物本体即确认，控制器决定是否生效
@@ -209,6 +231,14 @@ export class PixelBuddyElement extends HTMLElement {
     else this.removeAttribute('data-side');
   }
 
+  /** 待机眨眼动画开关（默认关，纯 CSS 实现） */
+  get blink(): boolean {
+    return this.getAttribute('blink') === 'on';
+  }
+  set blink(value: boolean) {
+    this.setAttribute('blink', value ? 'on' : 'off');
+  }
+
   /** 显示侧别：left / right（缺省 right） */
   get side(): 'left' | 'right' {
     return this.#parseSide(this.getAttribute('side'));
@@ -248,6 +278,7 @@ export class PixelBuddyElement extends HTMLElement {
     if (attr === 'theme') this.#applyTheme(this.#parseTheme(value));
     if (attr === 'pet') this.#applyPet(this.#parsePet(value));
     if (attr === 'side') this.#applySide(this.#parseSide(value));
+    if (attr === 'blink') this.#applyBlink(value === 'on');
   }
 
   /** 本体尺寸档位：32/40/48px，非法值回退默认档 */
@@ -274,10 +305,33 @@ export class PixelBuddyElement extends HTMLElement {
     return resolvePet(raw);
   }
 
+  /** 本体 SVG + 可选眨眼眼睑叠层（.lids 仅在 data-blink=on 时被 CSS 动画点亮） */
+  #petMarkup(pet: PetSprite): string {
+    const lids = pet.blinkOverlay
+      ? `<svg class="lids" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">${pet.blinkOverlay()}</svg>`
+      : '';
+    return pet.svg() + lids;
+  }
+
+  #applyBlink(on: boolean): void {
+    if (on) this.setAttribute('data-blink', 'on');
+    else this.removeAttribute('data-blink');
+  }
+
+  /** 各宠物眨眼相位错开（负延迟），避免多实例同帧齐眨 */
+  #applyBlinkPhase(pet: PetSprite): void {
+    const lids = this.#wrap?.querySelector('.lids');
+    if (!lids) return;
+    let hash = 0;
+    for (const ch of pet.id) hash += ch.charCodeAt(0);
+    (lids as HTMLElement).style.animationDelay = `-${(hash % 46) * 100}ms`;
+  }
+
   #applyPet(pet: PetSprite): void {
     if (this.#pet === pet || !this.#wrap) return;
     this.#pet = pet;
-    this.#wrap.innerHTML = pet.svg(); // 本体替换不做动画（PRD §4.4：本体永不动画）
+    this.#wrap.innerHTML = this.#petMarkup(pet); // 本体替换不做动画（PRD §4.4：本体永不动画）
+    this.#applyBlinkPhase(pet);
   }
 
   /** 主题：light / dark / auto（auto 跟随系统 prefers-color-scheme，事件驱动非轮询） */
@@ -356,6 +410,11 @@ export class PixelBuddyElement extends HTMLElement {
   /** 测试专用：closed Shadow DOM 的徽章节点访问入口（生产路径不使用） */
   __testBadges(): HTMLElement[] {
     return this.#badgeNodes ? [...this.#badgeNodes] : [];
+  }
+
+  /** 测试专用：本体容器访问入口（生产路径不使用） */
+  __testWrap(): HTMLElement | null {
+    return this.#wrap;
   }
 
   /** 测试专用：当前本体 SVG 访问入口（生产路径不使用） */

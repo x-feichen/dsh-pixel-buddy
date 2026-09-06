@@ -38,4 +38,8 @@ export const duck: PetSprite = {
     <rect x="8" y="13" width="2" height="1" fill="#D9700F"/>
   </svg>`;
   },
+
+  blinkOverlay() {
+    return `<rect x="6" y="4" width="1" height="2" fill="#FFD966"/>`;
+  },
 };

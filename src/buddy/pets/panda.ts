@@ -36,4 +36,8 @@ export const panda: PetSprite = {
     <rect x="8" y="13" width="2" height="1" fill="#2B2B2B"/>
   </svg>`;
   },
+
+  blinkOverlay() {
+    return `<rect x="3" y="4" width="1" height="1" fill="#2B2B2B"/><rect x="8" y="5" width="1" height="1" fill="#2B2B2B"/>`;
+  },
 };

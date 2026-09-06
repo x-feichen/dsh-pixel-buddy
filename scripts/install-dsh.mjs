@@ -91,9 +91,14 @@ if (!profilePkg.dsh.profile.bundles.includes(PKG_NAME)) {
 }
 writeJson(pkgJsonPath, profilePkg);
 
-// 4) pnpm 安装（把 local 拷贝落到 node_modules）
+// 4) pnpm 安装；随后强制以 local 拷贝覆盖 node_modules
+//    （pnpm 对 file: 依赖不感知源内容变化，会保留旧副本 —— 必须显式替换）
 log('pnpm install…');
 run('pnpm', ['install'], profileDir);
+const nmDir = join(profileDir, 'node_modules', PKG_NAME);
+log('强制刷新 node_modules 副本…');
+rmSync(nmDir, { recursive: true, force: true });
+cpSync(localCopy, nmDir, { recursive: true });
 
 // 5) 校验：客户端包可解析 + bundle 组成树包含本插件
 let installedClient;

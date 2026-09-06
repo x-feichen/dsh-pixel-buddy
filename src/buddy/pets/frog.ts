@@ -38,4 +38,8 @@ export const frog: PetSprite = {
     <rect x="8" y="13" width="2" height="1" fill="#4C8F33"/>
   </svg>`;
   },
+
+  blinkOverlay() {
+    return `<rect x="2" y="1" width="3" height="3" fill="#6FBF4A"/><rect x="7" y="1" width="3" height="3" fill="#6FBF4A"/><rect x="3" y="2" width="1" height="1" fill="#4C8F33"/><rect x="8" y="2" width="1" height="1" fill="#4C8F33"/>`;
+  },
 };

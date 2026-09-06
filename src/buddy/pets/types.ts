@@ -10,4 +10,9 @@ export interface PetSprite {
    * 禁止携带 animation/transition。
    */
   svg(): string;
+  /**
+   * 眨眼帧：覆盖在眼睛位置的眼睑图形（16x16 坐标系），随 CSS 动画周期性显示。
+   * 可选；未声明则该宠物不支持眨眼。
+   */
+  blinkOverlay?(): string;
 }

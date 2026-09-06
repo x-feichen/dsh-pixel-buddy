@@ -46,4 +46,8 @@ export const dog: PetSprite = {
     <rect x="8" y="13" width="2" height="1" fill="#EFE0C8"/>
   </svg>`;
   },
+
+  blinkOverlay() {
+    return `<rect x="4" y="5" width="1" height="2" fill="#B98A5A"/><rect x="8" y="5" width="1" height="2" fill="#B98A5A"/><rect x="4" y="6" width="1" height="1" fill="#8A5F38"/><rect x="8" y="6" width="1" height="1" fill="#8A5F38"/>`;
+  },
 };

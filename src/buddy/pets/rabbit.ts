@@ -41,4 +41,8 @@ export const rabbit: PetSprite = {
     <rect x="8" y="13" width="2" height="1" fill="#C9CDD3"/>
   </svg>`;
   },
+
+  blinkOverlay() {
+    return `<rect x="4" y="6" width="1" height="1" fill="#F5F7FA"/><rect x="8" y="6" width="1" height="1" fill="#F5F7FA"/><rect x="4" y="6" width="1" height="1" fill="#C9CDD3"/><rect x="8" y="6" width="1" height="1" fill="#C9CDD3"/>`;
+  },
 };
