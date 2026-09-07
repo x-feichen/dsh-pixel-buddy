@@ -26,19 +26,21 @@ npm run build:dsh # 产出 dsh/client.js（DSH 客户端包）
 
 插件以 DSH 客户端模块形式接入（已在本机 `@deepseek-ai/dsh@0.1.0-rc.8` web profile 实测）。前置：已安装 DSH CLI（`npm i -g @deepseek-ai/dsh`）且存在 web profile（`~/.dsh/profiles/web`）。
 
+### 通过源码安装
+
 ```bash
 npm run dsh:install     # 构建 + 拷贝进 profile + 注册 bundle + pnpm 安装 + 组成树校验
 npm run dsh:uninstall   # 移除
 ```
 
-默认安装到 `web` profile，其他 profile 用 `npm run dsh:install -- --profile <name>`；安装/更新后重启 profile 生效（`dsh web --no-open --port <port>`）。
+默认安装到 `web` profile，其他 profile 用 `npm run dsh:install`；安装/更新后重启 profile 生效（`dsh web --no-open --port <port>`）。
 
 ### 通过 npm 安装（dsh plugin）
 
 插件已发布为 npm 包（dsh-pixel-buddy）。标准安装方式：
 
 ```bash
-dsh plugin --profile web add dsh-pixel-buddy
+dsh plugin --profile web add dsh-pixel-buddy@latest
 ```
 
 命令内部转发 pnpm 安装，读取包内 dsh.bundle.patch 自动把插件挂载进 profile 的 bundle 栈；重启 `dsh web` 后生效。移除：
