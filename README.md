@@ -47,22 +47,6 @@ dsh plugin --profile web add dsh-pixel-buddy
 dsh plugin --profile web remove dsh-pixel-buddy
 ```
 
-> 本机偏好等设置数据独立存放（~/.dsh/settings.yaml），重装/更新插件不影响。
-
-### 发布到 npm（维护者）
-
-前置：已注册 npm 账号并 `npm login`；包名 dsh-pixel-buddy 已确认可发布（2026-09-07）。
-
-```bash
-npm version patch        # 或 minor / major，版本号符合 semver
-npm publish              # prepublishOnly 自动跑 lint + test + build:dsh
-```
-
-发布前自动校验（prepublishOnly）：lint、75 条测试、重新构建 dsh/client.js——确保发布产物与源码一致。发布内容由 package.json#files 白名单控制：
-
-- lib/（服务端插件入口）、dsh/client.js（客户端包）、dsh.plugin.json、cordis.patch.yml（bundle 挂载声明）、scripts/（构建/安装脚本）、README.md；
-- src/ 源码与测试、docs/ 不随包发布。
-
 ## 使用
 
 - **设置**：DSH 设置 → 通用设置 → “宠物形象 / 显示位置 / 显示宠物 / 待机眨眼动画”，偏好持久化到 `~/.dsh/settings.yaml` 的 `dsh-pixel-buddy` 段；
