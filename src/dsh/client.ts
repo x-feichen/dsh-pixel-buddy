@@ -13,7 +13,7 @@
  *   idle ← 其余
  * 聚合：多会话按 报错 > 需要人工 > 运行中 > 待机 取最高优先级（T3.2 §3 的最小实现）。
  */
-import { createElement, useEffect, useReducer, useState } from 'react';
+import { createElement, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { ReactElement } from 'react';
 import { Menu } from '@deepseek-ai/dsh-client-ui-primitives';
@@ -199,7 +199,7 @@ function PixelBuddySeat(props: SeatProps): null {
     const el = document.querySelector('dsh-pixel-buddy') as PixelBuddyElement | null;
     if (el) {
       el.onDragEnd = (px: number) => void prefsScope?.set('bottomOffset', px);
-      el.onContextMenu = (pos) => openBuddyMenu(pos);
+      el.onContextMenu = () => openBuddyMenu(prefs.side);
     }
     return () => {
       mountCount -= 1;
@@ -440,18 +440,14 @@ function PixelBuddySettingsItem(scope: SettingsScope): ReactElement {
 // ===================== 右键菜单 =====================
 
 type MenuPage = 'main' | 'pets' | 'about';
-interface MenuPos {
-  x: number;
-  y: number;
-}
+const VIEWPORT_MARGIN = 8;
 
-const menuStyle: Record<string, string> = {
-  position: 'fixed',
-  left: `${0}px`,
-  top: `${0}px`,
-  zIndex: '2147483000',
-};
-
+/**
+ * 锚点定位策略（产品裁决 2026-09-06）：
+ * 宠物在右侧 → 菜单在宠物左上方向上展开（菜单右缘对齐宠物左缘）；
+ * 宠物在左侧 → 菜单在宠物右上方向上展开（菜单左缘对齐宠物右缘）。
+ * 渲染后按菜单实测尺寸做视口内钳制，绝不产生页面滚动条。
+ */
 /** 兼容方案（摸底结论：宿主无官方 API）：模拟点击宿主原生按钮。宿主 UI 改版可能失效。 */
 function clickHostButton(names: string[]): boolean {
   const dialogOrBody = document.querySelector('[role="dialog"]') ?? document;
@@ -467,13 +463,15 @@ function clickHostButton(names: string[]): boolean {
 }
 
 function BuddyMenuApp(props: {
-  pos: MenuPos;
+  side: 'left' | 'right';
+  petRectJson: string;
   close: () => void;
 }): ReactElement {
+  const { side, petRectJson, close } = props;
   const scope = prefsScope as SettingsScope;
-  const { pos, close } = props;
   const [page, setPage] = useState<MenuPage>('main');
   const [, force] = useReducer((n: number) => n + 1, 0);
+  const listRef = useRef<HTMLElement | null>(null);
   useEffect(() => scope.subscribe(force), [scope]);
   useEffect(() => onLangChange(force), []);
 
@@ -499,7 +497,74 @@ function BuddyMenuApp(props: {
     };
   }, [close]);
 
+  // 定位：侧别方向 + 向上展开 + 视口内钳制（渲染后按实测尺寸计算，幂等）
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const r = list.getBoundingClientRect();
+    const target = JSON.parse(petRectJson) as { left: number; right: number; top: number };
+    let left = side === 'right' ? target.left - r.width - 4 : target.right + 4;
+    let top = target.top - r.height - 4; // 向上展开，不遮挡宠物
+    left = Math.min(Math.max(left, VIEWPORT_MARGIN), window.innerWidth - r.width - VIEWPORT_MARGIN);
+    top = Math.min(Math.max(top, VIEWPORT_MARGIN), window.innerHeight - r.height - VIEWPORT_MARGIN);
+    list.style.left = `${Math.round(left)}px`;
+    list.style.top = `${Math.round(top)}px`;
+  });
+
+  const posStyle: Record<string, string> = {
+    position: 'fixed',
+    left: '0px',
+    top: '0px',
+    zIndex: '2147483000',
+  };
+
   const item = (id: string, label: string): { id: string; label: string } => ({ id, label });
+
+  function handleMenuSelect(id: string): void {
+    if (id === '__pet') {
+      setPage('pets');
+      return;
+    }
+    if (id === '__back') {
+      setPage('main');
+      return;
+    }
+    if (id === '__hide') {
+      void scope.set('visible', !visible);
+      close();
+      return;
+    }
+    if (id === '__reset') {
+      const el = document.querySelector('dsh-pixel-buddy') as PixelBuddyElement | null;
+      el?.resetPosition();
+      void scope.set('bottomOffset', 16);
+      close();
+      return;
+    }
+    if (id === '__blink') {
+      void scope.set('blink', !blink);
+      close();
+      return;
+    }
+    if (id === '__settings') {
+      close();
+      setTimeout(() => clickHostButton(['设置', 'Settings']), 50);
+      return;
+    }
+    if (id === '__new') {
+      close();
+      setTimeout(() => clickHostButton(['新建会话', 'New session', '新会话']), 50);
+      return;
+    }
+    if (id === '__about') {
+      setPage('about');
+      return;
+    }
+    if ((PET_IDS as readonly string[]).includes(id)) {
+      void scope.set('pet', id);
+      close();
+    }
+  }
 
   let items: Array<{ id: string; label: string }>;
   let selectedId: string | undefined;
@@ -526,70 +591,58 @@ function BuddyMenuApp(props: {
     ];
   }
 
-  return createElement(Menu, {
-    open: true,
-    portal: false,
-    anchor: createElement('div', {
+  return createElement(
+    'div',
+    {
       'data-buddy-menu': '',
-      style: { ...menuStyle, left: `${pos.x}px`, top: `${pos.y}px` },
-    }),
-    items,
-    selectedId: page === 'pets' ? selectedId : undefined,
-    onSelect: (id: string) => {
-      if (id === '__pet') {
-        setPage('pets');
-        return;
-      }
-      if (id === '__back') {
-        setPage('main');
-        return;
-      }
-      if (id === '__hide') {
-        void scope.set('visible', !visible);
-        close();
-        return;
-      }
-      if (id === '__reset') {
-        const el = document.querySelector('dsh-pixel-buddy') as PixelBuddyElement | null;
-        el?.resetPosition();
-        void scope.set('bottomOffset', 16);
-        close();
-        return;
-      }
-      if (id === '__blink') {
-        void scope.set('blink', !blink);
-        close();
-        return;
-      }
-      if (id === '__settings') {
-        close();
-        setTimeout(() => clickHostButton(['设置', 'Settings']), 50);
-        return;
-      }
-      if (id === '__new') {
-        close();
-        setTimeout(() => clickHostButton(['新建会话', 'New session', '新会话']), 50);
-        return;
-      }
-      if (id === '__about') {
-        setPage('about');
-        return;
-      }
-      // pets 页：选择宠物
-      if ((PET_IDS as readonly string[]).includes(id)) {
-        void scope.set('pet', id);
-        close();
-      }
+      style: posStyle,
     },
-    onClose: close,
-  });
+    createElement('style', null, MENU_CSS),
+    createElement(
+      'div',
+      { className: 'buddy-menu-list', role: 'menu', ref: listRef as never },
+      items.map((it) =>
+        createElement(
+          'div',
+          {
+            key: it.id,
+            className: 'buddy-menu-item' + (selectedId === it.id ? ' selected' : ''),
+            role: 'menuitem',
+            onClick: () => handleMenuSelect(it.id),
+          },
+          it.label,
+        ),
+      ),
+    ),
+  );
 }
+
+/** 菜单样式：深浅主题自适应（跟随系统），hover 高亮，选中项标记 */
+const MENU_CSS = [
+  '.buddy-menu-list {',
+  '  position: absolute; left: 0; top: 0; min-width: 170px;',
+  "  background: #22262e; color: #e8eaed;",
+  '  border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 4px;',
+  '  box-shadow: 0 6px 24px rgba(0,0,0,0.4); font-size: 13px;',
+  '}',
+  '.buddy-menu-item { padding: 7px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }',
+  '.buddy-menu-item:hover { background: rgba(255,255,255,0.08); }',
+  '.buddy-menu-item.selected { color: #7ea6ff; }',
+  '@media (prefers-color-scheme: light) {',
+  '  .buddy-menu-list { background: #ffffff; color: #1f232b; border-color: rgba(0,0,0,0.1); box-shadow: 0 6px 24px rgba(0,0,0,0.15); }',
+  '  .buddy-menu-item:hover { background: rgba(0,0,0,0.06); }',
+  '  .buddy-menu-item.selected { color: #2563eb; }',
+  '}',
+].join('\n');
 
 let menuRoot: ReturnType<typeof createRoot> | null = null;
 let menuContainer: HTMLElement | null = null;
 
-/** 打开右键菜单（单例 root，重复打开按最新状态重渲） */
-function openBuddyMenu(pos: MenuPos): void {
+/** 打开右键菜单（单例 root；锚点按宠物位置与侧别计算） */
+function openBuddyMenu(side: 'left' | 'right'): void {
+  const el = document.querySelector('dsh-pixel-buddy');
+  if (!el) return;
+  const petRect = el.getBoundingClientRect().toJSON();
   if (!menuContainer) {
     menuContainer = document.createElement('div');
     document.body.appendChild(menuContainer);
@@ -599,6 +652,6 @@ function openBuddyMenu(pos: MenuPos): void {
     menuRoot?.render(createElement('span', { style: { display: 'none' } }));
   };
   menuRoot?.render(
-    createElement(BuddyMenuApp, { pos, close }),
+    createElement(BuddyMenuApp, { side, petRectJson: JSON.stringify(petRect), close }),
   );
 }
