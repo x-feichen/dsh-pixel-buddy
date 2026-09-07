@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "description": "DSH Web 桌面宠物插件：像素小伙伴随会话状态展示徽章信号",
   "type": "module",
-  "private": true,
   "scripts": {
-    "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -13,7 +11,8 @@
     "format": "prettier --write .",
     "build:dsh": "node scripts/build-dsh.mjs",
     "dsh:install": "node scripts/install-dsh.mjs",
-    "dsh:uninstall": "node scripts/install-dsh.mjs --uninstall"
+    "dsh:uninstall": "node scripts/install-dsh.mjs --uninstall",
+    "prepublishOnly": "npm run lint && npm test && npm run build:dsh"
   },
   "devDependencies": {
     "@types/react": "^18.3.31",
@@ -44,5 +43,13 @@
     ".": "./lib/index.cjs",
     "./client": "./dsh/client.js",
     "./package.json": "./package.json"
-  }
+  },
+  "files": [
+    "lib",
+    "dsh",
+    "dsh.plugin.json",
+    "cordis.patch.yml",
+    "scripts",
+    "README.md"
+  ]
 }
