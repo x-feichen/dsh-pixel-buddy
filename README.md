@@ -19,9 +19,6 @@ DSH Web 桌面宠物插件：页面右下角常驻像素小伙伴，随会话状
 
 ```bash
 npm install       # 安装依赖
-npm test          # 全量测试（75 条）
-npm run lint      # 代码检查
-npm run build     # 产出 dist/dsh-pixel-buddy.iife.js（独立页面用）
 npm run build:dsh # 产出 dsh/client.js（DSH 客户端包）
 ```
 
@@ -59,11 +56,3 @@ DSH 会话快照（useSession）──► src/dsh/client.ts（派生内部事件
                                     ▼
                     <dsh-pixel-buddy> Web Component（Shadow DOM closed）
 ```
-
-- **接入层职责分离**：`src/dsh/client.ts` 是唯一感知 DSH 宿主（slots/设置/语言）的模块；核心 UI 组件（事件契约、状态机、控制器、宠物资产）与宿主解耦，可独立运行（IIFE 形态）；
-- **性能红线**：零 rAF 轮询、仅一次性定时器（成功展示期/超时降级/去抖），静态+运行时审计测试锁定；
-- **测试**：75 条覆盖单元（状态机/适配层/渲染/i18n）、端到端全链路、边缘加固、性能审计。
-
-## 设计文档（工作区本地 `docs/`，不纳入版本控制）
-
-需求澄清结论、Hook API 对齐附录（含真实宿主实测回填）、美术资产需求单、M1/M2 出口评审报告、发布检查清单、后续版本技术预留评审等。
