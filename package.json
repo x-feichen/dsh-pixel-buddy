@@ -1,6 +1,6 @@
 {
   "name": "dsh-pixel-buddy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DSH Web 桌面宠物插件：像素小伙伴随会话状态展示徽章信号",
   "type": "module",
   "scripts": {
