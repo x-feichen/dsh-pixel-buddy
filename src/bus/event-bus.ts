@@ -2,10 +2,10 @@ import type { SessionEvent } from '../contract.js';
 import type { SessionEventAdapter } from '../adapter/session-event-adapter.js';
 
 /**
- * 开发联调用事件总线：在 devhost 面板手动派发内部事件，模拟 DSH Hook API。
- * 仅用于本地联调与单测注入，不进入生产构建路径（生产使用 DshHookAdapter）。
+ * 会话事件总线：DSH 接入层（src/dsh/client.ts）将派生出的内部事件投递于此，
+ * 状态控制器订阅消费；测试以同一实例注入驱动全链路。事件发布-订阅的中枢。
  */
-class DevEventBusImpl implements SessionEventAdapter {
+class EventBusImpl implements SessionEventAdapter {
   #listeners = new Set<(event: SessionEvent) => void>();
 
   dispatch(event: SessionEvent): void {
@@ -23,4 +23,4 @@ class DevEventBusImpl implements SessionEventAdapter {
   }
 }
 
-export const DevEventBus = new DevEventBusImpl();
+export const EventBus = new EventBusImpl();

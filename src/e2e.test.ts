@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mountPixelBuddy } from './index.js';
 import type { PixelBuddyHandle } from './index.js';
-import { DevEventBus } from './dev/event-bus.js';
+import { EventBus } from './bus/event-bus.js';
 import { DshHookAdapter } from './adapter/dsh-hook-adapter.js';
 import type { DshHookApi } from './adapter/dsh-hook-adapter.js';
 import type { SessionEventAdapter } from './adapter/session-event-adapter.js';
@@ -35,7 +35,7 @@ function visibleLabel(): string | null {
 describe('T1.7 全链路集成', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
-    DevEventBus.reset();
+    EventBus.reset();
     vi.useFakeTimers();
   });
   afterEach(() => {
@@ -48,11 +48,11 @@ describe('T1.7 全链路集成', () => {
   });
 
   it('正常流：运行中 → 成功 → 2.5s 后自动淡出回待机（验收 2/3）', () => {
-    mount({ adapter: DevEventBus });
-    DevEventBus.dispatch({ type: 'task-start' });
+    mount({ adapter: EventBus });
+    EventBus.dispatch({ type: 'task-start' });
     expect(visibleLabel()).toBe('会话运行中');
 
-    DevEventBus.dispatch({ type: 'task-success' });
+    EventBus.dispatch({ type: 'task-success' });
     expect(visibleLabel()).toBe('任务成功完成');
 
     vi.advanceTimersByTime(2499);
@@ -62,30 +62,30 @@ describe('T1.7 全链路集成', () => {
   });
 
   it('异常流：报错粘滞 → 点击宠物消除 → 后续事件恢复正常驱动（验收 4）', () => {
-    const handle = mount({ adapter: DevEventBus });
+    const handle = mount({ adapter: EventBus });
     const el = document.querySelector('dsh-pixel-buddy') as PixelBuddyElement;
 
-    DevEventBus.dispatch({ type: 'task-start' });
-    DevEventBus.dispatch({ type: 'task-error' });
+    EventBus.dispatch({ type: 'task-start' });
+    EventBus.dispatch({ type: 'task-error' });
     expect(visibleLabel()).toBe('会话出现异常');
 
-    DevEventBus.dispatch({ type: 'task-success' });
+    EventBus.dispatch({ type: 'task-success' });
     expect(visibleLabel()).toBe('会话出现异常'); // 不被洗白（D2）
 
     el.click();
     expect(visibleLabel()).toBeNull();
 
-    DevEventBus.dispatch({ type: 'task-start' });
+    EventBus.dispatch({ type: 'task-start' });
     expect(visibleLabel()).toBe('会话运行中'); // 消除后恢复联动
     handle.destroy();
   });
 
   it('需要人工流：粘滞展示，点击消除（验收 5）', () => {
-    const handle = mount({ adapter: DevEventBus });
+    const handle = mount({ adapter: EventBus });
     const el = document.querySelector('dsh-pixel-buddy') as PixelBuddyElement;
 
-    DevEventBus.dispatch({ type: 'task-start' });
-    DevEventBus.dispatch({ type: 'input-required' });
+    EventBus.dispatch({ type: 'task-start' });
+    EventBus.dispatch({ type: 'input-required' });
     expect(visibleLabel()).toBe('会话需要人工介入');
 
     el.click();
@@ -94,10 +94,10 @@ describe('T1.7 全链路集成', () => {
   });
 
   it('快速连续事件流（爆发）：终态一致、无双徽章同显（验收 6）', () => {
-    const handle = mount({ adapter: DevEventBus });
-    DevEventBus.dispatch({ type: 'task-start' });
+    const handle = mount({ adapter: EventBus });
+    EventBus.dispatch({ type: 'task-start' });
     for (let i = 0; i < 20; i++) {
-      DevEventBus.dispatch({ type: i % 2 === 0 ? 'task-error' : 'task-success' });
+      EventBus.dispatch({ type: i % 2 === 0 ? 'task-error' : 'task-success' });
     }
     // 最后一次为 success；由于无粘滞（error 后紧跟 success 序列中最后事件决定粘滞位），
     // 期望最终由最后一次事件语义决定，且展示层至多一个可见徽章
@@ -108,8 +108,8 @@ describe('T1.7 全链路集成', () => {
   });
 
   it('超时降级：task-start 后终态丢失，10min 后强制回待机，不永久卡"运行中"', () => {
-    mount({ adapter: DevEventBus });
-    DevEventBus.dispatch({ type: 'task-start' });
+    mount({ adapter: EventBus });
+    EventBus.dispatch({ type: 'task-start' });
     vi.advanceTimersByTime(10 * 60 * 1000);
     expect(visibleLabel()).toBeNull();
   });
@@ -133,10 +133,10 @@ describe('T1.7 全链路集成', () => {
   });
 
   it('验收 7：任意状态流转中本体节点始终无动画声明', () => {
-    const handle = mount({ adapter: DevEventBus });
+    const handle = mount({ adapter: EventBus });
     const el = document.querySelector('dsh-pixel-buddy') as PixelBuddyElement;
     for (const t of ['task-start', 'task-success', 'task-error', 'task-start'] as const) {
-      DevEventBus.dispatch({ type: t });
+      EventBus.dispatch({ type: t });
       expect(el.outerHTML).not.toContain('animation');
     }
     handle.destroy();

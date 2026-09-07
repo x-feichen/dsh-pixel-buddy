@@ -8,7 +8,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { mountPixelBuddy } from './index.js';
-import { DevEventBus } from './dev/event-bus.js';
+import { EventBus } from './bus/event-bus.js';
 
 const distPath = join(dirname(fileURLToPath(import.meta.url)), '../dist/dsh-pixel-buddy.iife.js');
 
@@ -36,18 +36,18 @@ describe('T2.3-A 静态审计（构建产物）', () => {
 describe('T2.3-B 运行时审计（定时器生命周期）', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
-    DevEventBus.reset();
+    EventBus.reset();
     vi.useFakeTimers();
   });
   afterEach(() => vi.useRealTimers());
 
   it('爆发事件后卸载：零残留定时器（不引入常态开销）', () => {
-    const handle = mountPixelBuddy(document.body, { adapter: DevEventBus });
+    const handle = mountPixelBuddy(document.body, { adapter: EventBus });
 
     // 模拟高峰：20 次任务循环，每个任务挂超时降级定时器
     for (let i = 0; i < 20; i++) {
-      DevEventBus.dispatch({ type: 'task-start' });
-      DevEventBus.dispatch({ type: 'task-success' });
+      EventBus.dispatch({ type: 'task-start' });
+      EventBus.dispatch({ type: 'task-success' });
     }
     expect(vi.getTimerCount()).toBeGreaterThan(0); // 成功展示期定时器在挂
 
@@ -56,9 +56,9 @@ describe('T2.3-B 运行时审计（定时器生命周期）', () => {
   });
 
   it('待机稳态：无活跃任务时零定时器（静止态零开销）', () => {
-    const handle = mountPixelBuddy(document.body, { adapter: DevEventBus });
-    DevEventBus.dispatch({ type: 'task-start' });
-    DevEventBus.dispatch({ type: 'task-success' });
+    const handle = mountPixelBuddy(document.body, { adapter: EventBus });
+    EventBus.dispatch({ type: 'task-start' });
+    EventBus.dispatch({ type: 'task-success' });
     vi.advanceTimersByTime(2500); // 成功展示期满自动回收
     expect(vi.getTimerCount()).toBe(0); // 稳态：零定时器、零轮询
     handle.destroy();

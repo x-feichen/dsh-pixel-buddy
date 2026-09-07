@@ -1,71 +1,69 @@
 # dsh-pixel-buddy
 
-DSH Web 桌面宠物插件：页面右下角常驻像素小伙伴，随会话状态以右上角徽章传达当前状态（待机/运行中/需要人工/报错/成功），零常态性能开销。
+DSH Web 桌面宠物插件：页面右下角常驻像素小伙伴，随会话状态在头顶以徽章传达当前状态（待机/运行中/需要人工/报错/成功），支持垂直拖拽、右键菜单、双语界面与偏好持久化，零常态性能开销。
+
+## 功能一览
+
+| 能力 | 说明 |
+|---|---|
+| 8 只像素宠物 | 鸭子/猫/狗/兔子/狐狸/仓鼠/熊猫/青蛙（每宠物一个文件，注册表扩展） |
+| 状态徽章 | 运行中蓝点 / 需要人工黄问号 / 报错红叹号 / 成功绿勾；150ms 交叉淡入淡出；报错与需要人工**粘滞**，单击宠物消除 |
+| 垂直拖拽 | 按住左键上下移动，松手停住；左右位置由设置控制 |
+| 右键菜单 | 宠物形象切换、隐藏/显示、回到默认位置、待机眨眼开关、关于、打开设置、新建会话 |
+| 待机眨眼 | 纯 CSS 眨眼动画（设置项，默认关；prefers-reduced-motion 停用） |
+| 国际化 | 中文/英文，随宿主语言实时切换 |
+| 偏好持久化 | 宠物/侧别/显隐/垂直位置/眨眼 全部存宿主设置文档 |
+| 性能 | 零 rAF 轮询、零常态定时器、零运行时依赖，gzip ≈ 6KB（IIFE） |
 
 ## 快速开始
 
 ```bash
-npm install     # 安装依赖
-npm run dev     # 本地联调（devhost 模拟宿主 + 事件触发面板）
-npm test        # 全量测试（58 条）
-npm run build   # 产出 dist/dsh-pixel-buddy.iife.js（单文件，gzip ≈ 5.2KB）
-npm run lint    # 代码检查
+npm install       # 安装依赖
+npm test          # 全量测试（75 条）
+npm run lint      # 代码检查
+npm run build     # 产出 dist/dsh-pixel-buddy.iife.js（独立页面用）
+npm run build:dsh # 产出 dsh/client.js（DSH 客户端包）
 ```
 
 ## 安装到 DSH
 
-插件以 DSH 客户端模块形式接入（已在本机 `@deepseek-ai/dsh@0.1.0-rc.8` web profile 实测）。
-
-### 前置
-
-- 已安装 DSH CLI（`npm i -g @deepseek-ai/dsh`），存在 web profile（`~/.dsh/profiles/web`）。
-
-### 步骤（一条命令）
+插件以 DSH 客户端模块形式接入（已在本机 `@deepseek-ai/dsh@0.1.0-rc.8` web profile 实测）。前置：已安装 DSH CLI（`npm i -g @deepseek-ai/dsh`）且存在 web profile（`~/.dsh/profiles/web`）。
 
 ```bash
-npm run dsh:install
+npm run dsh:install     # 构建 + 拷贝进 profile + 注册 bundle + pnpm 安装 + 组成树校验
+npm run dsh:uninstall   # 移除
 ```
 
-脚本自动完成：构建 DSH 客户端包 → 拷贝包体到 profile 的 `local/` 目录 → 注册依赖与 bundle → pnpm 安装 → 组成树校验。默认安装到 `web` profile，其他 profile 用 `npm run dsh:install -- --profile <name>`。
+默认安装到 `web` profile，其他 profile 用 `npm run dsh:install -- --profile <name>`；安装/更新后重启 profile 生效（`dsh web --no-open --port <port>`）。
 
-移除插件：
+## 使用
 
-```bash
-npm run dsh:uninstall
-```
-
-安装/更新后重启 profile 生效（`dsh web --no-open --port <port>`）。
-
-### 使用
-
-- **切换宠物 / 显示隐藏**：设置 → 通用设置 → "宠物形象"下拉与"显示宠物"开关；偏好持久化到宿主设置文档（`~/.dsh/settings.yaml` 的 `dsh-pixel-buddy` 段）。
+- **设置**：DSH 设置 → 通用设置 → “宠物形象 / 显示位置 / 显示宠物 / 待机眨眼动画”，偏好持久化到 `~/.dsh/settings.yaml` 的 `dsh-pixel-buddy` 段；
+- **拖拽**：按住左键上下拖动宠物（左右锁定），松手停留并持久化；
+- **右键菜单**：切换宠物、隐藏/显示、回到默认位置、眨眼开关、关于、打开设置、新建会话；
+- **粘滞徽章**：报错/需要人工不自动消失，**单击宠物**确认消除；
 - **独立页面用法**（非 DSH 环境）：引入 `dist/dsh-pixel-buddy.iife.js`（script 注入即自动挂载），可用属性：
-  `pet`（`duck/cat/dog/rabbit/fox/penguin/panda/frog`）、`size`（`32/40/48`）、`theme`（`light/dark/auto`）；卸载 `window.dshPixelBuddy.destroy()`。
-
-## 交互说明
-
-- 报错 / 需要人工徽章**粘滞**：不自动消失，**单击宠物本体**确认消除。
-- 成功徽章展示 2.5 秒后自动淡出。
-- 徽章过渡 150ms 交叉淡入淡出；本体无任何动画。
-- `prefers-reduced-motion` 开启时自动取消过渡动效。
+  `pet`（`duck/cat/dog/rabbit/fox/hamster/panda/frog`）、`size`（`32/40/48`）、`theme`（`light/dark/auto`）、`lang`（`zh/en`）；卸载 `window.dshPixelBuddy.destroy()`。
 
 ## 架构
 
 ```
-DSH Hook API ─► DshHookAdapter（唯一感知宿主 API 的模块）
-                    │ 内部事件契约（contract.ts，签名冻结）
-                    ▼
-             状态机 reducer（buddy-state-machine.ts，纯函数 + fuzz 覆盖）
-                    ▼
-             状态控制器（buddy-state-controller.ts，一次性定时器驱动）
-                    ▼
-             <dsh-pixel-buddy> Web Component（Shadow DOM closed）
+DSH 会话快照（useSession）──► src/dsh/client.ts（派生内部事件 / 设置面板 / 右键菜单）
+                                    │ 内部事件契约（contract.ts）
+                                    ▼
+                              EventBus（src/bus，发布-订阅中枢）
+                                    ▼
+                        状态机 reducer（纯函数 + fuzz 覆盖）
+                                    ▼
+                        状态控制器（一次性定时器驱动）
+                                    ▼
+                    <dsh-pixel-buddy> Web Component（Shadow DOM closed）
 ```
 
-详细文档见 `docs/`：产品需求、任务规划、需求澄清结论、Hook API 对齐附录、美术资产需求单、技术选型、M1/M2 出口评审报告。
+- **接入层职责分离**：`src/dsh/client.ts` 是唯一感知 DSH 宿主（slots/设置/语言）的模块；核心 UI 组件（事件契约、状态机、控制器、宠物资产）与宿主解耦，可独立运行（IIFE 形态）；
+- **性能红线**：零 rAF 轮询、仅一次性定时器（成功展示期/超时降级/去抖），静态+运行时审计测试锁定；
+- **测试**：75 条覆盖单元（状态机/适配层/渲染/i18n）、端到端全链路、边缘加固、性能审计。
 
-## 已知边界
+## 设计文档（工作区本地 `docs/`，不纳入版本控制）
 
-- MVP 仅反映当前激活标签页的会话。
-- 页面刷新后回待机（无快照 API 的保守降级）。
-- Hook API 事件名为占位，以《Hook API 对齐附录》§5 核实清单回填为准。
+需求澄清结论、Hook API 对齐附录（含真实宿主实测回填）、美术资产需求单、M1/M2 出口评审报告、发布检查清单、后续版本技术预留评审等。

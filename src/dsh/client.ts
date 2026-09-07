@@ -26,7 +26,7 @@ import { petName, t } from '../i18n.js';
 import type { Lang } from '../i18n.js';
 
 const PLUGIN_VERSION = '0.1.0';
-import { DevEventBus } from '../dev/event-bus.js';
+import { EventBus } from '../bus/event-bus.js';
 import type { SessionEvent } from '../contract.js';
 
 /** DSH 宿主运行时类型（ConversationSnapshot / slots 上下文）由宿主提供，此处以结构化别名声明 */
@@ -90,7 +90,7 @@ function deriveStatus(snap: HostSnapshot | null | undefined): DerivedStatus {
 
 /** 全局状态转移 → 内部事件（保持状态机契约不变，含粘滞语义的宿主侧解除） */
 function emitTransition(prev: DerivedStatus | null, next: DerivedStatus): void {
-  const emit = (type: SessionEvent['type'] | 'user-ack') => DevEventBus.dispatch({ type } as SessionEvent);
+  const emit = (type: SessionEvent['type'] | 'user-ack') => EventBus.dispatch({ type } as SessionEvent);
   const startIfNeeded = (): void => {
     if (prev !== 'running') emit('task-start');
   };
@@ -191,7 +191,7 @@ function PixelBuddySeat(props: SeatProps): null {
   useEffect(() => {
     mountCount += 1;
     if (!buddyHandle) {
-      buddyHandle = mountPixelBuddy(document.body, { adapter: DevEventBus });
+      buddyHandle = mountPixelBuddy(document.body, { adapter: EventBus });
     }
     applyPrefsToElement();
     const el0 = document.querySelector('dsh-pixel-buddy');
